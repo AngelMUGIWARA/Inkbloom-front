@@ -1,3 +1,61 @@
+window.onload = function () {
+  const editorDiv = document.getElementById('editor');
+  const documentoCuerpo = editorDiv.getAttribute('data-documento');
+
+  // Inicializa Quill con el tema "snow"
+  const editor = new Quill('#editor', {
+      theme: 'snow',
+  });
+
+  // Carga el contenido inicial si existe
+  if (documentoCuerpo) {
+      editor.clipboard.dangerouslyPasteHTML(documentoCuerpo);
+  }
+
+  // Vincula botones a funciones específicas
+  document.querySelector('.boton.guardar').onclick = async function () {
+      await guardarCambios(editor);
+  };
+
+  document.querySelector('.boton.deshacer').onclick = function () {
+      deshacer(editor);
+  };
+
+  document.querySelector('.boton.rehacer').onclick = function () {
+      rehacer(editor);
+  };
+};
+
+async function guardarCambios(editor) {
+  const contenido = editor.root.innerHTML; // Extrae el contenido actual del editor
+
+  try {
+      const response = await fetch('/api/documento/agregar', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `texto=${encodeURIComponent(contenido)}`,
+      });
+
+      if (response.ok) {
+          console.log('Cambios guardados correctamente.');
+      } else {
+          console.error('Error al guardar cambios:', await response.text());
+      }
+  } catch (error) {
+      console.error('Error al realizar la solicitud:', error);
+  }
+}
+
+function deshacer(editor) {
+  editor.history.undo();
+}
+
+function rehacer(editor) {
+  editor.history.redo();
+}
+
 async function listarDocumentos() {
   const response = await fetch('/api/documento');
   if (response.ok) {
@@ -8,6 +66,7 @@ async function listarDocumentos() {
       console.error('Error al listar documentos');
   }
 }
+
 async function crearDocumento(titulo) {
   const response = await fetch('/api/documento/crear', {
       method: 'POST',
@@ -23,6 +82,7 @@ async function crearDocumento(titulo) {
       console.error('Error al crear documento');
   }
 }
+
 async function agregarTexto(texto) {
   const response = await fetch('/api/documento/agregar', {
       method: 'POST',
@@ -38,6 +98,7 @@ async function agregarTexto(texto) {
       console.error('Error al agregar texto');
   }
 }
+
 async function quitarTexto() {
   const response = await fetch('/api/documento/quitar', {
       method: 'POST'
@@ -51,19 +112,8 @@ async function quitarTexto() {
       console.error('Error al quitar texto');
   }
 }
-async function guardarDocumento() {
-  const response = await fetch('/api/documento/guardar', {
-      method: 'POST'
-  });
 
-  if (response.ok) {
-      const documentos = await response.json();
-      console.log('Documentos guardados:', documentos);
-  } else {
-      console.error('Error al guardar documento');
-  }
-}
-async function deshacer() {
+async function deshacerCambios() {
   const response = await fetch('/api/documento/deshacer', {
       method: 'POST'
   });
@@ -76,7 +126,8 @@ async function deshacer() {
       console.error('Error al deshacer');
   }
 }
-async function rehacer() {
+
+async function rehacerCambios() {
   const response = await fetch('/api/documento/rehacer', {
       method: 'POST'
   });
@@ -89,39 +140,7 @@ async function rehacer() {
       console.error('Error al rehacer');
   }
 }
-async function listarCambiosPendientes() {
-  const response = await fetch('/api/documento/cambios');
-  if (response.ok) {
-      const cambios = await response.json();
-      console.log('Cambios pendientes:', cambios);
-      return cambios;
-  } else {
-      console.error('Error al listar cambios pendientes');
-  }
-}
-async function abrirDocumentoEnVista(titulo) {
-  const response = await fetch(`/api/documento/vista/abrir?titulo=${encodeURIComponent(titulo)}`, {
-      method: 'POST'
-  });
 
-  if (response.ok) {
-      console.log('Documento abierto en vista');
-  } else {
-      console.error('Error al abrir documento en vista');
-  }
-}
-async function cerrarDocumentoEnVista() {
-  const response = await fetch('/api/documento/vista/cerrar', {
-      method: 'POST'
-  });
-
-  if (response.ok) {
-      const documentoCerrado = await response.json();
-      console.log('Documento cerrado:', documentoCerrado);
-  } else {
-      console.error('Error al cerrar documento en vista');
-  }
-}
 async function mostrarAreaDeTrabajo() {
   const response = await fetch('/api/documento/area-de-trabajo');
   if (response.ok) {
@@ -133,39 +152,13 @@ async function mostrarAreaDeTrabajo() {
   }
 }
 
-
-
-/*
-// Inicializa Quill
-const editor = new Quill('#editor', {
-    theme: 'snow'
+function actualizarEditor(documento) {
+  const editorDiv = document.getElementById('editor');
+  const editor = new Quill('#editor', {
+      theme: 'snow',
   });
-  
-  // Carga el contenido inicial desde el servidor
-  const contenido = document.getElementById('editor').dataset.documento;
-  editor.root.innerHTML = contenido;
-  
-  // Función para guardar los cambios
-  async function guardarCambios() {
-    const contenido = editor.root.innerHTML;
-    await fetch('/documento/agregar', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ texto: contenido }),
-    });
-    alert('Documento guardado!');
+
+  if (documento && documento.cuerpo) {
+      editor.clipboard.dangerouslyPasteHTML(documento.cuerpo);
   }
-  
-  // Función para deshacer cambios
-  function deshacer() {
-    editor.history.undo();
-  }
-  
-  // Función para rehacer cambios
-  function rehacer() {
-    editor.history.redo();
-  }
-  */
-  
+}
